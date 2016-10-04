@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Facebook CTF: Functions for provisioning scripts
+# Facebook CTF: Funciones para los scripts de aprovisionamiento
 #
 
 function log() {
@@ -32,27 +32,27 @@ function dl() {
 
 function package() {
   if [[ -n "$(dpkg --get-selections | grep $1)" ]]; then
-    log "$1 is already installed. skipping."
+    log "$1 ya está instalado. Omitiendo."
   else
-    log "Installing $1"
+    log "Instalando $1"
     sudo DEBIAN_FRONTEND=noninteractive apt-get install $1 -y --no-install-recommends
   fi
 }
 
 function install_unison() {
-  log "Installing Unison 2.48.4"
+  log "Instalando Unison 2.48.4"
   cd /
   curl -sL https://www.archlinux.org/packages/extra/x86_64/unison/download/ | sudo tar Jx
 }
 
 function repo_osquery() {
-  log "Adding osquery repository keys"
+  log "Añadiendo las claves del repositorio osquery"
   sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1484120AC4E9F8A1A577AEEE97A80C63C9D8B80B
   sudo add-apt-repository "deb [arch=amd64] https://osquery-packages.s3.amazonaws.com/trusty trusty main"
 }
 
 function repo_mycli() {
-  log "Adding MyCLI repository keys"
+  log "Añadiendo las claves del repositorio MyCLI"
   curl -s https://packagecloud.io/gpg.key | sudo apt-key add -
   package apt-transport-https
   echo "deb https://packagecloud.io/amjith/mycli/ubuntu/ trusty main" | sudo tee -a /etc/apt/sources.list
@@ -61,20 +61,20 @@ function repo_mycli() {
 function install_mysql() {
   local __pwd=$1
 
-  log "Installing MySQL"
+  log "Instalando MySQL"
 
   echo "mysql-server-5.5 mysql-server/root_password password $__pwd" | sudo debconf-set-selections
   echo "mysql-server-5.5 mysql-server/root_password_again password $__pwd" | sudo debconf-set-selections
   package mysql-server
 
-  # It should be started automatically, but just in case
+  # Debería iniciar automáticamente, pero por si acaso
   sudo service mysql restart
 }
 
 function set_motd() {
   local __path=$1
 
-  # If the cloudguest MOTD exists, disable it
+  # Si el cloudguest MOTD existe, deshabilitarlo
   if [[ -f /etc/update-motd.d/51/cloudguest ]]; then
     sudo chmod -x /etc/update-motd.d/51-cloudguest
   fi
@@ -89,10 +89,10 @@ function run_grunt() {
   cd "$__path"
   grunt
 
-  # grunt watch on the VM will make sure your js files are
-  # properly updated when developing 'remotely' with unison.
-  # grunt watch might take up to 5 seconds to update a file,
-  # give it some time while you are developing.
+  # grunt revisa la VM y se asegura de que los archivos js
+  # están correctamente actualizados cuando se despliega 'remotamente' con unison.
+  # la revisión de grunt emplea hasta 5 segundos en actualizar un archivo,
+  # así que hay que darle tiempo cuando se hace el despliegue.
   if [[ $__mode = "dev" ]]; then
     grunt watch &
   fi
@@ -116,12 +116,12 @@ function letsencrypt_cert() {
   sudo chmod a+x /usr/bin/certbot-auto
 
   if [[ $__email == "none" ]]; then
-    read -p ' -> What is the email for the SSL Certificate recovery? ' __myemail
+    read -p ' -> Cuál es el email para recuperar el certificado SSL? ' __myemail
   else
     __myemail=$__email
   fi
   if [[ $__domain == "none" ]]; then
-    read -p ' -> What is the domain for the SSL Certificate? ' __mydomain
+    read -p ' -> Cuál es el dominio para el certificado SSL? ' __mydomain
   else
     __mydomain=$__domain
   fi
@@ -147,8 +147,8 @@ function own_cert() {
   local __owncert=$1
   local __ownkey=$2
 
-  read -p ' -> SSL Certificate file location? ' __mycert
-  read -p ' -> SSL Key Certificate file location? ' __mykey
+  read -p ' -> Ubicación del archivo de certificado SSL? ' __mycert
+  read -p ' -> Ubicación del archivo de claves de certificado SSL? ' __mykey
   sudo cp "$__mycert" "$__owncert"
   sudo cp "$__mykey" "$__ownkey"
 }
@@ -163,7 +163,7 @@ function install_nginx() {
 
   local __certs_path="/etc/nginx/certs"
 
-  log "Deploying certificates"
+  log "Desplegando certificados"
   sudo mkdir -p "$__certs_path"
 
   if [[ $__mode = "dev" ]]; then
@@ -187,14 +187,14 @@ function install_nginx() {
         letsencrypt_cert "$__cert" "$__key" "$__email" "$__domain" "$__docker"
       ;;
       *)
-        error_log "Unrecognized type of certificate"
+        error_log "Tipo de certificado no reconocido"
         exit 1
       ;;
     esac
   fi
 
-  # We make sure to install nginx after installing the cert, because if we use
-  # letsencrypt, we need to be sure nothing is listening on that port
+  # Nos aseguramos de instalar nginx después del certificado porque se usamos
+  # letsencrypt, necesitaremos estar seguros de que no hay nada escuchando en ese puerto
   package nginx
 
   __dhparam="/etc/nginx/certs/dhparam.pem"
@@ -205,54 +205,54 @@ function install_nginx() {
   sudo rm -f /etc/nginx/sites-enabled/default
   sudo ln -sf /etc/nginx/sites-available/fbctf.conf /etc/nginx/sites-enabled/fbctf.conf
 
-  # Restart nginx
+  # Reiniciar nginx
   sudo nginx -t
   sudo service nginx restart
 }
 
-# TODO: We should split this function into one where the repo is added, and a
-# second where the repo is installed
+# TODO: Deberíamos dividir esta función en dos: una cuando el repositorio esté añadido y
+# otra cuando el repositorio esté instalado
 function install_hhvm() {
   local __path=$1
 
   package software-properties-common
 
-  log "Adding HHVM key"
+  log "Añadiendo clave HHVM"
   sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0x5a16e7281be7a449
 
-  log "Adding HHVM repo"
+  log "Añadiendo repositorio HHVM"
   sudo add-apt-repository "deb http://dl.hhvm.com/ubuntu $(lsb_release -sc) main"
 
-  log "Installing HHVM"
+  log "Instalando HHVM"
   sudo apt-get update
-  # Installing the package so the dependencies are installed too
+  # Instalando el paquete también instalamos sus dependencias
   package hhvm
-  # The HHVM package version 3.15 is broken and crashes. See: https://github.com/facebook/hhvm/issues/7333
-  # Until this is fixed, install manually closest previous version, 3.14.5
+  # La versión 3.15 de HHVM no funciona correctamente con FBCTF. Ver: https://github.com/facebook/hhvm/issues/7333
+  # Hasta que se arregle este problema, instalar manualmente la versión más próxima a la 3.14.5
   sudo apt-get remove hhvm -y
-  # Clear old files
+  # Limpiar archivos antiguos
   sudo rm -Rf /var/run/hhvm/*
   local __package="hhvm_3.14.5~$(lsb_release -sc)_amd64.deb"
   dl "http://dl.hhvm.com/ubuntu/pool/main/h/hhvm/$__package" "/tmp/$__package"
   sudo dpkg -i "/tmp/$__package"
 
-  log "Copying HHVM configuration"
+  log "Copiando la configuración HHVM"
   cat "$__path/extra/hhvm.conf" | sed "s|CTFPATH|$__path/|g" | sudo tee /etc/hhvm/server.ini
 
-  log "HHVM as PHP systemwide"
+  log "HHVM como sistema PHP"
   sudo /usr/bin/update-alternatives --install /usr/bin/php php /usr/bin/hhvm 60
 
-  log "Enabling HHVM to start by default"
+  log "Habilitando HHVM para iniciarse por defecto"
   sudo update-rc.d hhvm defaults
 
-  log "Restart HHVM"
+  log "Reiniciar HHVM"
   sudo service hhvm restart
 }
 
 function hhvm_performance() {
   local __path=$1
 
-  log "Enabling HHVM RepoAuthoritative mode"
+  log "Habilitando el modo Repoautoritativo de HHVM"
   sudo hhvm-repo-mode enable "$__path"
   sudo chown www-data:www-data /var/run/hhvm/hhvm.hhbc
 }
@@ -260,7 +260,7 @@ function hhvm_performance() {
 function install_composer() {
   local __path=$1
 
-  log "Installing composer"
+  log "Instalando composer"
   cd $__path
   curl -sS https://getcomposer.org/installer | php
   php composer.phar install
@@ -277,26 +277,26 @@ function import_empty_db() {
   local __path=$4
   local __mode=$5
 
-  log "Creating DB - $__db"
+  log "Creando la base de datos - $__db"
   mysql -u "$__user" --password="$__pwd" -e "CREATE DATABASE IF NOT EXISTS \`$__db\`;"
 
-  log "Importing schema..."
+  log "Importando esquema..."
   mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/schema.sql;"
-  log "Importing countries..."
+  log "Importando países..."
   mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/countries.sql;"
-  log "Importing logos..."
+  log "Importando logos..."
   mysql -u "$__user" --password="$__pwd" "$__db" -e "source $__path/database/logos.sql;"
 
-  log "Creating user..."
-  mysql -u "$__user" --password="$__pwd" -e "CREATE USER '$__u'@'localhost' IDENTIFIED BY '$__p';" || true # don't fail if the user exists
+  log "Creando usuario..."
+  mysql -u "$__user" --password="$__pwd" -e "CREATE USER '$__u'@'localhost' IDENTIFIED BY '$__p';" || true # no falla si el usuario existe
   mysql -u "$__user" --password="$__pwd" -e "GRANT ALL PRIVILEGES ON \`$__db\`.* TO '$__u'@'localhost';"
   mysql -u "$__user" --password="$__pwd" -e "FLUSH PRIVILEGES;"
 
-  log "DB Connection file"
+  log "Archivo de conexión de la DB"
   cat "$__path/extra/settings.ini.example" | sed "s/DATABASE/$__db/g" | sed "s/MYUSER/$__u/g" | sed "s/MYPWD/$__p/g" > "$__path/settings.ini"
 
   local PASSWORD
-  log "Adding default admin user"
+  log "Añadiendo usuario administrador por defecto"
   if [[ $__mode = "dev" ]]; then
     PASSWORD='password'
   else
@@ -304,7 +304,7 @@ function import_empty_db() {
   fi
 
   set_password "$PASSWORD" "$__user" "$__pwd" "$__db" "$__path"
-  log "The password for admin is: $PASSWORD"
+  log "Creado el usuario admin con la contraseña $PASSWORD"
 }
 
 function set_password() {
@@ -315,12 +315,14 @@ function set_password() {
   local __path=$5
 
   HASH=$(hhvm -f "$__path/extra/hash.php" "$__admin_pwd")
-
-  # First try to delete the existing admin user
+  # En primer lugar, tratamos de eliminar el usuario admin existente
   mysql -u "$__user" --password="$__db_pwd" "$__db" -e "DELETE FROM teams WHERE name='admin' AND admin=1"
-
-  # Then insert the new admin user with ID 1 (just as a convention, we shouldn't rely on this in the code)
+  # A continuación insertarmos un nuevo usuario admin con ID 1 (en cualquier caso, conviene comprobarlo en la BD)
   mysql -u "$__user" --password="$__db_pwd" "$__db" -e "INSERT INTO teams (id, name, password_hash, admin, protected, logo, created_ts) VALUES (1, 'admin', '$HASH', 1, 1, 'admin', NOW());"
+  if [[ $? -eq 0 ]]; then
+  	echo "La nueva contraseña para el usuario admin es $__admin_pwd"
+  fi
+  
 }
 
 function update_repo() {
@@ -333,19 +335,19 @@ function update_repo() {
     killall -9 grunt
   fi
 
-  echo "[+] Pulling from remote repository"
+  echo "[+] Extrayendo del repositorio remoto"
   git pull --rebase https://github.com/facebook/fbctf.git
 
-  echo "[+] Starting sync to $__ctf_path"
+  echo "[+] Iniciando sincronización con $__ctf_path"
   if [[ "$__code_path" != "$__ctf_path" ]]; then
       [[ -d "$__ctf_path" ]] || sudo mkdir -p "$__ctf_path"
 
-      echo "[+] Copying all CTF code to destination folder"
+      echo "[+] Copiando todo el código a la carpeta de destino"
       sudo rsync -a --exclude node_modules --exclude vendor "$__code_path/" "$__ctf_path/"
 
       # This is because sync'ing files is done with unison
       if [[ "$__mode" == "dev" ]]; then
-          echo "[+] Setting permissions"
+          echo "[+] Establecidendo permisos"
           sudo chmod -R 777 "$__ctf_path/"
       fi
   fi

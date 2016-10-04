@@ -168,29 +168,29 @@ fi
 AVAILABLE_RAM=`free -mt | grep Total | awk '{print $2}'`
 
 if [ $AVAILABLE_RAM -lt 1024 ]; then
-        echo "[+] FBCTF is likely to fail to install without 1GB or more of RAM."
-        echo "[+] Sleeping for 5 seconds."
+        echo "[+] FBCTF necesita al menos 1GB de memoria RAM."
+        echo "[+] Esperando durante 5 segundos."
 
         sleep 5
 fi
 
-echo "[+] Provisioning in $MODE mode"
-echo "[+] Using $TYPE certificate"
-echo "[+] Source code folder $CODE_PATH"
-echo "[+] Destination folder $CTF_PATH"
+echo "[+] Aprovisionando en modo $MODE "
+echo "[+] Usando certificado $TYPE "
+echo "[+] Carpeta del código fuente $CODE_PATH"
+echo "[+] Carpeta destino $CTF_PATH"
 
 # We only create a new directory and rsync files over if it's different from the
 # original code path
 if [[ "$CODE_PATH" != "$CTF_PATH" ]]; then
-    echo "[+] Creating code folder $CTF_PATH"
+    echo "[+] Creando la carpeta del código $CTF_PATH"
     [[ -d "$CTF_PATH" ]] || sudo mkdir -p "$CTF_PATH"
 
-    echo "[+] Copying all CTF code to destination folder"
+    echo "[+] Copiando todo el código de CTF a la carpeta de destino"
     sudo rsync -a --exclude node_modules --exclude vendor "$CODE_PATH/" "$CTF_PATH/"
 
     # This is because sync'ing files is done with unison
     if [[ "$MODE" == "dev" ]]; then
-        echo "[+] Setting permissions"
+        echo "[+] Estableciendo permisos"
         sudo chmod -R 777 "$CTF_PATH/"
     fi
 fi
@@ -252,7 +252,7 @@ install_nginx "$CTF_PATH" "$MODE" "$TYPE" "$EMAIL" "$DOMAIN" "$DOCKER"
 
 # Install unison 2.48.3
 install_unison
-log "Remember install the same version of unison (2.48.3) in your host machine"
+log "Recuerda instalar la misma versión de unison (2.48.3) en tu equipo anfitrión"
 
 # Database creation
 import_empty_db "root" "$P_ROOT" "$DB" "$CTF_PATH" "$MODE"
@@ -266,6 +266,6 @@ if [[ "$MODE" == "prod" ]]; then
     hhvm_performance "$CTF_PATH"
 fi
 
-ok_log 'fbctf deployment is complete! Ready in https://10.10.10.5'
+ok_log '¡Despliegue de FBCTF completado! Plataforma disponible en https://127.0.0.1 o en https://10.10.10.5'
 
 exit 0
